@@ -1,0 +1,165 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+#Step 1: Library 
+library(devtools)
+library(frequencyConnectedness)
+library(zoo)
+library(BigVAR)
+library(caret)
+```
+```{r}
+#Step 2: Read the data 
+data<-read.csv("dy2012.csv", header=T, sep=",")
+head(data)
+tail(data)
+```
+
+```{r}
+#Step 3: Shape the data 
+data.zoo=zoo(data[,-1], order.by=as.Date(strptime(as.character(data[,1]), "%Y-%m-%d")))
+head(data.zoo)
+```
+```{r}
+#Step 4: Compute the VAR(2) estimate with constant and save results
+est <- VAR(data.zoo, p = 2, type = "const")
+head(est)
+```
+```{r}
+#Step 5: Compute traditional spillovers
+spilloverDY09(est, n.ahead = 100, no.corr = F)
+```
+```{r}
+#Step 6: Compute the spillover DY12
+spilloverDY12(est, n.ahead = 100, no.corr = F)
+```
+```{r}
+#Step 7:Compute with no correlations
+spilloverDY09(est, n.ahead = 100, no.corr = T)
+```
+```{r}
+spilloverDY12(est, n.ahead = 100, no.corr = T)
+```
+```{r}
+sp <- spilloverDY12(est, n.ahead = 100, no.corr = T)
+overall(sp)
+```
+```{r}
+to(sp)
+```
+```{r}
+from(sp)
+```
+```{r}
+net(sp)
+```
+```{r}
+pairwise(sp)
+```
+```{r}
+# Get the frequency connectedness on partition (pi,pi/4), (pi/4,0), roughly
+# corresponding to movements of 1 to 4 days and 4 to longer.
+bounds <- c(pi+0.00001, pi/4, 0)
+spilloverBK09(est, n.ahead = 100, no.corr = F, partition = bounds)
+```
+```{r}
+spilloverBK12(est, n.ahead = 100, no.corr = F, partition = bounds)
+```
+```{r}
+spilloverBK09(est, n.ahead = 100, no.corr = T, partition = bounds)
+```
+```{r}
+spilloverBK12(est, n.ahead = 100, no.corr = T, partition = bounds)
+```
+```{r}
+# Get the frequency connectedness on partition (pi,pi/4), (pi/4,0), roughly
+# corresponding to movements of 1 to 4 days and 4 to longer.
+bounds <- c(pi+0.00001, pi/4, pi/10, 0)
+
+spilloverBK12(est, n.ahead = 100, no.corr = F, partition = bounds)
+```
+```{r}
+collapseBounds(spilloverBK12(est, n.ahead = 100, no.corr = F, partition = bounds), 1:2)
+
+```
+```{r}
+#Dynamic Connectedness: 
+# Get the rolling window estimates
+params_est = list(p = 2, type = "const")
+sp <- spilloverRollingDY09(data.zoo, n.ahead = 100, no.corr = F, "VAR", params_est = params_est, window = 100)
+```
+```{r}
+plotOverall(sp)
+```
+```{r}
+plotTo(sp)
+```
+```{r}
+plotFrom(sp)
+```
+```{r}
+plotNet(sp)
+```
+```{r}
+plotPairwise(sp)
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+#Connectedness year 1999:
+data1999<-data[1:300,]
+head(data1999)
+tail(data1999)
+```
+```{r}
+data1999.zoo=zoo(data1999[,-1], order.by=as.Date(strptime(as.character(data1999[,1]), "%Y-%m-%d")))
+est1999 <- VAR(data1999.zoo, p = 2, type = "const")
+spilloverDY09(est1999, n.ahead = 100, no.corr = F)
+spilloverDY12(est1999, n.ahead = 100, no.corr = F)
+```
+```{r}
+data2007<-data[2000:2245,]
+head(data2007)
+tail(data2007)
+```
+
+```{r}
+data2007.zoo=zoo(data2005[,-1], order.by=as.Date(strptime(as.character(data2007[,1]), "%Y-%m-%d")))
+est2007 <- VAR(data2007.zoo, p = 2, type = "const")
+spilloverDY09(est2007, n.ahead = 100, no.corr = F)
+spilloverDY12(est2007, n.ahead = 100, no.corr = F)
+```
+```{r}
+data2009<-data[2510:2771,]
+head(data2009)
+tail(data2009)
+```
+```{r}
+data2009.zoo=zoo(data2009[,-1], order.by=as.Date(strptime(as.character(data2009[,1]), "%Y-%m-%d")))
+est2009 <- VAR(data2009.zoo, p = 2, type = "const")
+spilloverDY09(est2009, n.ahead = 100, no.corr = F)
+spilloverDY12(est2009, n.ahead = 100, no.corr = F)
+```
+```{r}
+data2<-read.csv("classeur4.csv", header=T, sep=";")
+head(data2)
+tail(data2)
+```
+```{r}
+data2.zoo=zoo(data2[,-1], order.by=as.Date(strptime(as.character(data2[,1]), "%Y/%m/%d")))
+head(data2.zoo)
+```
+
