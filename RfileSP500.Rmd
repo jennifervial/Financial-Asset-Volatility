@@ -1,0 +1,98 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+#Step 1: install packages
+library(quantmod)
+library(astsa)
+library(zoo)
+library(forecast)
+library(TSA)
+library(fGarch)
+library(FinTS)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+#Step 2: read the data
+read<-read.csv("GSPC.csv", header=T, sep=",")
+head(read)
+SP500<-read[,c("Date","Adj.Close")]
+head(SP500)
+tail(SP500)
+```
+```{r}
+#Step 3: Make a plot
+#Library Zoo used 
+SP500.zoo=zoo(SP500[,-1], order.by=as.Date(strptime(as.character(SP500[,1]), "%Y-%m-%d")))
+plot(SP500.zoo, main="S&P500 from 1995 to 2017")
+```
+```{r}
+#Step 4: Let's check the mean 
+#Library used: Zoo
+plot(rollapply(SP500.zoo, width=120, mean, na.rm=T), main="Mean of Rolling 120 Obs.")
+plot(rollapply(SP500.zoo, width=120, mean, by=120, na.rm=T),main="Mean of Each 120 Obs.")
+```
+```{r}
+#Step 5: Let's shape the data if it is not monthly data 
+#Library used: Zoo
+SP500x <- na.approx(na.trim(SP500.zoo[,"Close"], side="both"))
+SP500.w <- to.monthly(SP500x)[,"SP500x.Close"]
+head(SP500.w)
+tail(SP500.w)
+```
+```{r}
+#Step 6: Let's make a Log to stabilize variance over time 
+logSP500<-log(SP500.w)
+plot(log(SP500.w), main="log of S&P500")
+#Step 7: Let's make a Log to make the Time Serie Stationnary 
+diffSP500<-diff(logSP500)
+plot(diff(logSP500), main="diff of S&P500")
+```
+
+```{r}
+#Step 8:Let's check the ACF and PACF :
+#Library used: forecast
+tsdisplay(diffSP500)
+```
+```{r}
+#Step 9: is it a white noise ? 
+Box.test(diffSP500, lag=10, type="Ljung-Box")
+```
+```{r}
+#Step 10: Which GARCH Model Could fit ? 
+def.fit = ugarchfit(spec = spec, data = diffSP500)
+print(def.fit)
+```
+
+
+```{r}
+#STEP 11: Check the fit 
+garch11.spec = ugarchspec(mean.model = list(armaOrder = c(0,0)), 
+               variance.model = list(garchOrder = c(1,1), 
+               model = "sGARCH"), distribution.model = "norm")
+garch.fit = ugarchfit(garch11.spec, data = diffSP500, fit.control=list(scale=TRUE))
+print(garch.fit)
+plot(garch.fit, which=3)
+```
+
+
+```{r}
+#STEP 12: Make the forecast 
+GARCH11.fcst<-ugarchforecast(garch.fit, n.ahead=20)
+GARCH11.fcst
+```
+
+
+
