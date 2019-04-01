@@ -1,0 +1,112 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+#Step 1: install packages
+library(quantmod)
+library(astsa)
+library(zoo)
+library(forecast)
+library(TSA)
+library(fGarch)
+library(FinTS)
+```
+```{r}
+#Step 2: read the data
+bond<-read.csv("monthly_csv.csv", header=T, sep=",")
+head(bond)
+tail(bond)
+```
+```{r}
+#Step 3: Make a plot
+#Library Zoo used 
+bond.zoo=zoo(bond[,-1], order.by=as.Date(strptime(as.character(bond[,1]), "%Y-%m-%d")))
+plot(bond.zoo, main="10 year US Government Bond Yields from 1953 to 2018")
+```
+```{r}
+#FOUSE ON THE INTERNET BUBBLE CRISIS
+bond2000<-bond[550:600,]
+head(bond2000)
+tail(bond2000)
+bond2000.zoo=zoo(bond2000[,-1], order.by=as.Date(strptime(as.character(bond2000[,1]), "%Y-%m-%d")))
+plot(bond2000.zoo, main="10 year US Government Bond Yields from 2000 to 2003")
+```
+```{r}
+#FOUSE ON THE GLOBAL FINANCIAL CRISIS
+bond2010<-bond[645:710,]
+head(bond2010)
+tail(bond2010)
+bond2010.zoo=zoo(bond2010[,-1], order.by=as.Date(strptime(as.character(bond2010[,1]), "%Y-%m-%d")))
+plot(bond2010.zoo, main="10 year US Government Bond Yields from 2006 to 2010")
+```
+
+
+```{r}
+#Step 4: Let's shape the data if it is not monthly data 
+#Library used: Zoo
+bondx <- na.approx(na.trim(bond.zoo[,"Close"], side="both"))
+bondx.w <- to.monthly(bondx)[,"bondx.Close"]
+head(bondx.w)
+tail(bondx.w)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+#Step 5: Let's make a Log to stabilize variance over time 
+logbond<-log(bondx.w)
+plot(logbond, main="Log of Bond")
+#Step 6: Let's make a Log to make the Time Serie Stationnary 
+diffbond<-diff(logbond)
+plot(diff(logbond, main="diff of Bond"))
+```
+```{r}
+#Step 7:Let's check the ACF and PACF :
+#Library used: forecast
+tsdisplay(diffbond)
+```
+```{r}
+#TEST FOR WHITE NOISE
+Box.test(diffbond, lag=10, type="Ljung-Box")
+```
+
+
+
+```{r}
+#Step 8: Which GARCH Model Could fit ? 
+spec = ugarchspec()
+print(spec)
+def.fit = ugarchfit(spec = spec, data = diffbond)
+print(def.fit)
+```
+
+```{r}
+#STEP 9: Check the fit 
+garch11.spec = ugarchspec(mean.model = list(armaOrder = c(0,0)), 
+               variance.model = list(garchOrder = c(1,1), 
+               model = "sGARCH"), distribution.model = "norm")
+garch.fit2 = ugarchfit(garch11.spec, data = diffbond, fit.control=list(scale=TRUE))
+print(garch.fit2)
+plot(garch.fit, which=3)
+```
+
+
+
+```{r}
+#STEP 10: Make the forecast 
+GARCH112.fcst<-ugarchforecast(garch.fit2, n.ahead=20)
+GARCH112.fcst
+```
+
+
+
